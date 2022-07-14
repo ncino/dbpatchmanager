@@ -14,6 +14,9 @@ namespace Ormico.DbPatchManager.Logic
         {
             _configFileName = ConfigFile;
             _configLocalFileName = LocalConfigFile;
+            _pm = new PluginManager();
+            // _buildConfigWriter = "OriginalBuildConfig";
+            _buildConfigWriter = "NewBuildConfig";
             _rand = new Random();
             _io = new FileSystem();
         }
@@ -36,12 +39,14 @@ namespace Ormico.DbPatchManager.Logic
         DatabaseBuildConfiguration _configuration;
         string ScriptOverridesFolder = @"ScriptOverrides";
         //todo: not sure if making these .sql is best since not all databases are sql
+        private readonly PluginManager _pm;
         string AddInstalledPatchFileName = "AddInstalledPatch.sql";
         string GetInstalledPatchesFileName = "GetInstalledPatches.sql";
         string InitPatchTableFileName = "InitPatchTable.sql";
 
         readonly string _configFileName;
         readonly string _configLocalFileName;
+        private readonly string _buildConfigWriter;
         readonly Random _rand;
         
         /// <summary>
@@ -51,7 +56,8 @@ namespace Ormico.DbPatchManager.Logic
 
         public void InitConfig(InitOptions Options)
         {
-            var cfgWriter = new BuildConfigurationWriter(_configFileName, _configLocalFileName);
+            
+            var cfgWriter = _pm.LoadBuildConfigurationWriterPlugin(_buildConfigWriter, _configFileName, _configLocalFileName);
             DatabaseBuildConfiguration databaseBuildConfiguration = new DatabaseBuildConfiguration()
             {
                 DatabaseType = Options?.DbType,
@@ -81,7 +87,7 @@ namespace Ormico.DbPatchManager.Logic
             }
             else
             {
-                var cfgWriter = new BuildConfigurationWriter(_configFileName, _configLocalFileName);
+                var cfgWriter = _pm.LoadBuildConfigurationWriterPlugin(_buildConfigWriter, _configFileName, _configLocalFileName);
                 var cfg = cfgWriter.Read();
 
                 // load options
@@ -106,6 +112,7 @@ namespace Ormico.DbPatchManager.Logic
                     var openPatches = cfg.GetOpenPatches();
                     cfg.patches.Add(new Patch(finalId, openPatches));
                     cfgWriter.Write(cfg);
+                    Console.WriteLine("Your patch folder: {0}", patchPath);
                 }
                 else
                 {
@@ -117,7 +124,7 @@ namespace Ormico.DbPatchManager.Logic
 
         public void Build()
         {
-            var cfgWriter = new BuildConfigurationWriter(_configFileName, _configLocalFileName);
+            var cfgWriter = _pm.LoadBuildConfigurationWriterPlugin(_buildConfigWriter, _configFileName, _configLocalFileName);
             _configuration = cfgWriter.Read();
 
             // load options
@@ -128,9 +135,7 @@ namespace Ormico.DbPatchManager.Logic
             var first = _configuration.GetFirstPatch();
             if(first != null)
             {
-                PluginManager pm = new PluginManager();
-
-                using (var db = pm.LoadDatabasePlugin(_configuration.DatabaseType))
+                using (var db = _pm.LoadDatabasePlugin(_configuration.DatabaseType))
                 {
                     db.Connect(dbopt);
                     var installedPatches = db.GetInstalledPatches();
@@ -270,7 +275,7 @@ namespace Ormico.DbPatchManager.Logic
                         }
 
                         // add children of current
-                        foreach (var c in current.Children)
+                        foreach (var c in (current.Children ?? new List<Patch>()))
                         {
                             if (graph.Any(i => string.Equals(i.Id, c.Id)) == false)
                             {

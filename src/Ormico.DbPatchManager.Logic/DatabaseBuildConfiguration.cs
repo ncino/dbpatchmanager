@@ -12,6 +12,7 @@ namespace Ormico.DbPatchManager.Logic
         {
             //defaults
             PatchFolder = "Patches";
+            Options = new Dictionary<string, string>();
             CodeFolder = "Code";
             patches = new List<Patch>();
             CodeFiles = new List<string>()

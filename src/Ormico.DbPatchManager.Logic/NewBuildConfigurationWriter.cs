@@ -181,22 +181,28 @@ namespace Ormico.DbPatchManager.Logic
                     ? buildConfiguration.ConnectionString
                     : null;
 
-            // Attempt to move the last patch to Random spot 10 to 15 patches from bottom
+            // Attempt to move the last patch to Random spot 2 to 10 patches from bottom
             //  This is to try and help git merge conflicts.
             var patchCount = buildConfiguration.patches.Count;
-            var mergeTargetIndex = _rand.Next(patchCount - 20, patchCount - 2);
-            var lastPatch = buildConfiguration.patches.Last();
-            var lastPatchId = lastPatch.Id;
-            var lastPatchDependsOn = lastPatch.DependsOn;
-            var lastPatchChildren = lastPatch.Children;
-            
-            buildConfiguration.patches.Remove(lastPatch);
-            buildConfiguration.patches.Insert(mergeTargetIndex, new Patch()
+            if (patchCount > 10)
             {
-                Id = lastPatchId,
-                Children = lastPatchChildren,
-                DependsOn = lastPatchDependsOn
-            });
+                // We only want to move the patch if there are more than 10 patches.  This number is
+                // arbitrary but 10 should be enough
+                var mergeTargetIndex = _rand.Next(patchCount - 10, patchCount - 2);
+                var lastPatch = buildConfiguration.patches.Last();
+                var lastPatchId = lastPatch.Id;
+                var lastPatchDependsOn = lastPatch.DependsOn;
+                var lastPatchChildren = lastPatch.Children;
+            
+                buildConfiguration.patches.Remove(lastPatch);
+                buildConfiguration.patches.Insert(mergeTargetIndex, new Patch()
+                {
+                    Id = lastPatchId,
+                    Children = lastPatchChildren,
+                    DependsOn = lastPatchDependsOn
+                });
+                
+            }
             foreach (var buildConfigurationPatch in buildConfiguration.patches)
             {
                 var pff = new PatchFromFile()

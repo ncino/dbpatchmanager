@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <Copyright>Copyright (c) 2020 Zack Moore</Copyright>
@@ -15,6 +14,8 @@
     <PackageIcon>dbpatch-manager-profile.png</PackageIcon>
     <Description>Logic Library for Database Change managment designed for multi-dev/multi-branch.</Description>
     <AssemblyVersion>2.1.2.0</AssemblyVersion>
+    <LangVersion>10</LangVersion>
+    <TargetFrameworks>net6.0;netstandard2.1</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>

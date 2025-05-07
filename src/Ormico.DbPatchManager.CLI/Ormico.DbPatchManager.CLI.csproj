@@ -2,15 +2,18 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <TargetFramework>net8.0</TargetFramework>
+    <!--<GeneratePackageOnBuild>false</GeneratePackageOnBuild>-->
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <RepositoryUrl>https://github.com/ormico/dbpatchmanager</RepositoryUrl>
+	<PackAsTool>true</PackAsTool>
+    <RepositoryUrl>https://github.com/ncino/dbpatchmanager</RepositoryUrl>
     <Copyright>Copyright (c) 2020 Zack Moore</Copyright>
     <Authors>Zack Moore</Authors>
     <Company>Ormico</Company>
     <Product>Ormico DB Patch Manager CLI</Product>
+	<PackageAsTool>true</PackageAsTool>
+	<ToolCommandName>dbpatch</ToolCommandName>
     <AssemblyName>dbpatch</AssemblyName>
     <PackageId>Ormico.DbPatchManager.CLI</PackageId>
     <PackageProjectUrl>https://dbpatch.dev/</PackageProjectUrl>
@@ -44,7 +47,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CommandLineParser" Version="2.8.0" />
+    <PackageReference Include="CommandLineParser" Version="2.9.1" />
   </ItemGroup>
 
   <ItemGroup>

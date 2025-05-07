@@ -1,3 +1,4 @@
+src/.idea/
 src/.vs/
 temp/
 src2/
@@ -13,3 +14,4 @@ bin
 obj
 
 src/Ormico.DbPatchManager.CLI/deb/
+src/Ormico.DbPatchManager.CLI/Properties/launchSettings.json

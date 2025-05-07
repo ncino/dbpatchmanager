@@ -9,10 +9,7 @@ using System.Threading.Tasks;
 
 namespace Ormico.DbPatchManager.Logic
 {
-    /// <summary>
-    /// Readn and Write DatabaseBuildConfiguration to storage.
-    /// </summary>
-    public class BuildConfigurationWriter
+    public class BuildConfigurationWriter : IBuildConfigurationWriter
     {
         public BuildConfigurationWriter(string filePath, string localFilePath)
         {
@@ -46,14 +43,17 @@ namespace Ormico.DbPatchManager.Logic
         public DatabaseBuildConfiguration Read()
         {
             DatabaseBuildConfiguration rc = null;
-            if(_io.File.Exists(_filePath))
+            if (_io.File.Exists(_filePath))
             {
                 //rc = JsonConvert.DeserializeObject<DatabaseBuildConfiguration>(_io.File.ReadAllText(_filePath), _jsonSettings);
-                var o = (Newtonsoft.Json.Linq.JObject)Newtonsoft.Json.Linq.JToken.Parse(_io.File.ReadAllText(_filePath));
+                var o = (Newtonsoft.Json.Linq.JObject)Newtonsoft.Json.Linq.JToken.Parse(
+                    _io.File.ReadAllText(_filePath));
 
                 if (_io.File.Exists(_localFilePath))
                 {
-                    var localO = (Newtonsoft.Json.Linq.JObject)Newtonsoft.Json.Linq.JToken.Parse(_io.File.ReadAllText(_localFilePath));
+                    var localO =
+                        (Newtonsoft.Json.Linq.JObject)Newtonsoft.Json.Linq.JToken.Parse(
+                            _io.File.ReadAllText(_localFilePath));
                     o.Merge(localO, new JsonMergeSettings()
                     {
                         MergeArrayHandling = MergeArrayHandling.Union
@@ -76,30 +76,31 @@ namespace Ormico.DbPatchManager.Logic
                     rc.patches = new List<Patch>();
                 }
                 else
-                {   
+                {
                     var patches = (from p in o["patches"]
-                                 select new Patch()
-                                 {
-                                     Id = (string)p["id"]
-                                 }).ToList();
+                        select new Patch()
+                        {
+                            Id = (string)p["id"]
+                        }).ToList();
                     // populate DependsOn
-                    foreach(var p in patches)
+                    foreach (var p in patches)
                     {
                         var cur = from x in o["patches"]
-                                    from d in x["dependsOn"]
-                                    from a in patches
-                                    where (string)x["id"] == p.Id &&
-                                        a.Id == (string)d
-                                    select a;
+                            from d in x["dependsOn"]
+                            from a in patches
+                            where (string)x["id"] == p.Id &&
+                                  a.Id == (string)d
+                            select a;
                         p.DependsOn = cur.Distinct(new PatchComparer()).ToList();
                         //todo: double check this query
                         var children = from x in o["patches"]
-                                       from d in x["dependsOn"]
-                                       from a in patches
-                                       where (string)d == p.Id && (string)x["id"] == a.Id
-                                       select a;
+                            from d in x["dependsOn"]
+                            from a in patches
+                            where (string)d == p.Id && (string)x["id"] == a.Id
+                            select a;
                         p.Children = children.Distinct(new PatchComparer()).ToList();
                     }
+
                     rc.patches = patches.ToList();
                 }
             }
@@ -107,6 +108,7 @@ namespace Ormico.DbPatchManager.Logic
             {
                 throw new ApplicationException("Configuration file does not exist. Call init first.");
             }
+
             return rc;
         }
 
@@ -117,7 +119,9 @@ namespace Ormico.DbPatchManager.Logic
             //todo: if local file exists, don't write values to patches.json if value exists in patches.local.json
             if (_io.File.Exists(_localFilePath))
             {
-                var localO = (Newtonsoft.Json.Linq.JObject)Newtonsoft.Json.Linq.JToken.Parse(_io.File.ReadAllText(_localFilePath));
+                var localO =
+                    (Newtonsoft.Json.Linq.JObject)Newtonsoft.Json.Linq.JToken.Parse(
+                        _io.File.ReadAllText(_localFilePath));
                 data = new JObject();
 
                 //todo: find a way to do this that isn't manual. can you loop over all values in buildConfiguration?
@@ -136,8 +140,9 @@ namespace Ormico.DbPatchManager.Logic
                     data["CodeFolder"] = buildConfiguration.CodeFolder;
                 }
 
-                if (localO["CodeFiles"] == null && buildConfiguration.CodeFiles != null)
+                if (localO["CodeFiles"] == null || localO["CodeFiles"].HasValues == false)
                 {
+                    buildConfiguration.CodeFiles = buildConfiguration.CodeFiles ?? new List<string>();
                     data["CodeFiles"] = JArray.FromObject(buildConfiguration.CodeFiles);
                 }
 
@@ -146,20 +151,31 @@ namespace Ormico.DbPatchManager.Logic
                     data["PatchFolder"] = buildConfiguration.PatchFolder;
                 }
 
-                if (localO["Options"] == null && buildConfiguration.Options != null)
+                try
                 {
-                    data["Options"] = JArray.FromObject(buildConfiguration.Options);
+                    if (localO["Options"] == null || localO["Options"].HasValues == false)
+                    {
+                        buildConfiguration.Options = buildConfiguration.Options ?? new Dictionary<string, string>();
+                        data["Options"] = JObject.FromObject(buildConfiguration.Options);
+                    }
+                }
+                catch (JsonException e)
+                {
+                    Console.WriteLine(e.Message);
+                    data["Options"] = JObject.FromObject(new Dictionary<string, string>());
                 }
 
                 if (localO["patches"] == null && buildConfiguration.patches != null)
                 {
                     data["patches"] = JArray.FromObject(from p in buildConfiguration.patches
-                                      select new
-                                      {
-                                        id = p.Id,
-                                        dependsOn = p.DependsOn != null ? (from d in p.DependsOn
-                                            select d.Id) : null
-                                      });
+                        select new
+                        {
+                            id = p.Id,
+                            dependsOn = p.DependsOn != null
+                                ? (from d in p.DependsOn
+                                    select d.Id)
+                                : null
+                        });
                 }
             }
             else
@@ -174,12 +190,14 @@ namespace Ormico.DbPatchManager.Logic
                     PatchFolder = buildConfiguration.PatchFolder,
                     Options = buildConfiguration.Options,
                     patches = from p in buildConfiguration.patches
-                              select new
-                              {
-                                  id = p.Id,
-                                  dependsOn = p.DependsOn != null?(from d in p.DependsOn.Distinct(new PatchComparer())
-                                              select d.Id):null
-                              }
+                        select new
+                        {
+                            id = p.Id,
+                            dependsOn = p.DependsOn != null
+                                ? (from d in p.DependsOn.Distinct(new PatchComparer())
+                                    select d.Id)
+                                : null
+                        }
                 });
             }
 
